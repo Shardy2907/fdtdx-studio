@@ -21,13 +21,13 @@ from fdtdx_studio.ui.ui_view import View
 
 
 # ---------------------------------------------------------------------------
-# 1.  Edit defaults here (replaces config.toml)
+# 1.  Edit defaults here
 # ---------------------------------------------------------------------------
 
 @dataclass
 class ServerOptions:
     title: str                       = "FDTDX Studio"
-    favicon: str | None              = "src/fdtdx_studio/config/fdtdx.svg"
+    favicon: str | None              = "src/fdtdx.svg"
     port: int                        = 8080
     host: str                        = "127.0.0.1"
     dark: bool | None                = None    # None → NiceGUI decides
