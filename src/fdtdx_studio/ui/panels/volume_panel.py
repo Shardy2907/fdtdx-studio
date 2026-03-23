@@ -2,9 +2,20 @@ import fdtdx
 import math
 from nicegui import ui
 class volume_panel():
-  def __init__(self, drawer, controller):
-    self.drawer = drawer
-    self.controller = controller
+  def __init__(self, *args):
+    if len(args) == 2:
+      self.drawer = args[0]
+      self.controller = args[1]
+    else:
+      self.drawer = None
+      self.controller = args[0]
+
+  def Volume_panel(self):
+    """Backward compatibility shim for older callers expecting a dialog."""
+    with ui.dialog() as dlg, ui.card():
+        self.volume_param_panel(dialog=dlg)
+    dlg.props('persistent')
+    dlg.open()
 
   def volume_param_panel(self, dialog: ui.dialog = None):
     Volume: fdtdx.SimulationVolume = self.controller.project.objects[0]
