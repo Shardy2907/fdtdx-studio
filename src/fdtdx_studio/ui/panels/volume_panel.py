@@ -1,49 +1,57 @@
 import fdtdx 
+import math
 from nicegui import ui
 class volume_panel():
-  def __init__(self, controller):
+  def __init__(self, drawer, controller):
+    self.drawer = drawer
     self.controller = controller
 
-  def Volume_panel(self):
+  def volume_param_panel(self, dialog: ui.dialog = None):
     Volume: fdtdx.SimulationVolume = self.controller.project.objects[0]
     VTuple = Volume.partial_real_shape
     self.material = Volume.material
-
-
-    with ui.dialog() as dialogVolume, ui.card():
-      ui.label("Simulation Volume")
+    ui.label('Simulation Volume').style('font-size: 18px; margin-bottom: 8px; font-weight: bold;')
+    
+    with ui.row().classes('items-center gap-1'):
       ui.label('Size').style('font-size: 14px; padding-bottom: 0px; font-weight: bold;').tooltip("Sets the Size of the simulation Volume")
-      with ui.row().style('padding-top: 0px').classes('justify-center'):
-        x = ui.number('Width', value= (VTuple[0]),step= 0.000001, validation= self._validate).classes('w-1/6')
-        y = ui.number('Height', value= (VTuple[1]), step= 0.000001, validation= self._validate).classes('w-1/6')
-        z = ui.number('Length', value= (VTuple[2]), step= 0.000001, validation= self._validate).classes('w-1/6')
+    
+    x = ui.number('Width', value=(VTuple[0]), step=0.000001, validation=self._validate).classes('w-full')
+    y = ui.number('Height', value=(VTuple[1]), step=0.000001, validation=self._validate).classes('w-full')
+    z = ui.number('Length', value=(VTuple[2]), step=0.000001, validation=self._validate).classes('w-full')
       
-      def preset(W,H,L):
-        nonlocal x,y,z
-        x.value = W
-        y.value = H
-        z.value = L
-        
-      ui.label("Preset Sizes:")
-      with ui.row():
-        ui.button("Small", on_click= lambda: preset(5e-6,5e-6,5e-6))
-        ui.button("Medium",on_click= lambda: preset(1e-5,1e-5,1e-5))
-        ui.button("Large", on_click= lambda: preset(1e-4,1e-4,1e-4))
+    def preset(W,H,L):
+      nonlocal x,y,z
+      x.value = W
+      y.value = H
+      z.value = L
+      
+    def preset_changed(val):
+      if val == 'Small': preset(5e-6, 5e-6, 5e-6)
+      elif val == 'Medium': preset(1e-5, 1e-5, 1e-5)
+      elif val == 'Large': preset(1e-4, 1e-4, 1e-4)
 
-      ui.label("Material:")
-      with ui.dropdown_button(self.controller.model.material.get_name_from_material(self.material)).classes('w-1/3') as self.material_show:
-          for obj in self.controller.model.material.material_list:
-            ui.item(text=obj[0], on_click= lambda material=obj: self.choose_material(material))
+    def get_preset_name(vt):
+        if all(math.isclose(v, 5e-6, rel_tol=1e-5) for v in vt): return 'Small'
+        if all(math.isclose(v, 1e-5, rel_tol=1e-5) for v in vt): return 'Medium'
+        if all(math.isclose(v, 1e-4, rel_tol=1e-5) for v in vt): return 'Large'
+        return None
 
-      def onSaved():
-        dialogVolume.close()
-        self.controller.update_Simulation_Volume(x.value, y.value,z.value,self.material)
-        self.controller.ui_update()
+    current_preset = get_preset_name(VTuple)
+    ui.select(['Small', 'Medium', 'Large'], label='Preset Sizes', value=current_preset, on_change=lambda e: preset_changed(e.value)).classes('w-full')
 
-      self.save= ui.button("Save and Close").on_click(onSaved)
+    mat_names = [obj[0] for obj in self.controller.model.material.material_list]
+    current_mat = self.controller.model.material.get_name_from_material(self.material)
+    ui.select(mat_names, label='Material', value=current_mat, on_change=lambda e: self.choose_material_by_name(e.value)).classes('w-full')
 
-    dialogVolume.props('persistent')
-    dialogVolume.open()
+    async def onSaved():
+      self.controller.update_Simulation_Volume(x.value, y.value,z.value,self.material)
+      self.controller.ui_update()
+      if hasattr(self.drawer, 'update_vol_drawer'):
+          await self.drawer.update_vol_drawer()
+      if dialog is not None:
+          dialog.close()
+
+    self.save = ui.button("Apply", on_click=onSaved).classes('w-full')
 
   def _validate(self,value):
     try:
@@ -64,11 +72,12 @@ class volume_panel():
 
 
 
-  def choose_material(self, obj):
-    '''sets the material and updates the ui accordingly'''
-    self.material = obj[1]
-    self.material_show.close()
-    self.material_show.text = obj[0]
+  def choose_material_by_name(self, name):
+    '''sets the material by its name'''
+    for obj in self.controller.model.material.material_list:
+        if obj[0] == name:
+            self.material = obj[1]
+            break
 
   def isFloat(self, element: 'str') -> bool:
       """check if an input value is float"""

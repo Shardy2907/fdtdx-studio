@@ -15,7 +15,7 @@ class RightDrawer:
         self.controller = controller
         self.view = view
         self.simparpanel = simulation_parameters_panel(self, controller)
-        self.volume_panel = volume_panel(controller)
+        self.volume_panel = volume_panel(self, controller)
         self.build()
         
         
@@ -29,8 +29,8 @@ class RightDrawer:
                   self.view.config_panel = self.config_panel
                   self.simparpanel.simulation_param_panel()
                 
-                ui.button('Simulation Volume', on_click=self.volume_panel.Volume_panel).classes('w-full').style('margin-bottom: 8px;')
-                button = ui.button('Simulation Parameters', on_click= self.update_drawer).classes('w-full ').style('margin-bottom: 16px;')
+                ui.button('Simulation Volume', on_click=self.update_vol_drawer).classes('w-full').style('margin-bottom: 8px;')
+                button = ui.button('Simulation Parameters', on_click=self.update_drawer).classes('w-full ').style('margin-bottom: 16px;')
 
 
     async def update_drawer(self):
@@ -40,6 +40,11 @@ class RightDrawer:
         await ui.context.client.connected() #Ensures Ui is ready
         with self.config_panel:
           self.simparpanel.simulation_param_panel()
-    
-    
-      
+
+    async def update_vol_drawer(self):
+      """reloads the Simulation Volume Panel. MUST BE CALLED TO REFRESH NEW VALUES"""
+      if self.config_panel is not None:
+        self.config_panel.clear()
+        await ui.context.client.connected()
+        with self.config_panel:
+          self.volume_panel.volume_param_panel()
