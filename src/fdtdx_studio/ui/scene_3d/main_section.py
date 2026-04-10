@@ -103,6 +103,8 @@ class MainSection:
     # Adjust camera distance based on max volume size: positioned on negative X looking at origin
     # This keeps X pointing back (into the scene) and Z pointing up. (Y will point Left due to right-handed coordinates)
     max_dim = max(volume_units) if volume_units else 1.0
+    MIN_CAMERA_DIM = 1e-3
+    max_dim = max(max_dim, MIN_CAMERA_DIM)
     self.camera_distance_base = (-max_dim * 1.5, 0, 0)
     self.center_view()
     self.objects['Simulation_Volume'] = box

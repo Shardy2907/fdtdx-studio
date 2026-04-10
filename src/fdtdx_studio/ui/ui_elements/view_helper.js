@@ -242,6 +242,7 @@ export default {
 
         // Traverse and dispose materials/geometries to prevent memory leaks in Three.js
         if (this.scene) {
+            const spritesToRemove = [];
             this.scene.traverse((object) => {
                 if (object.isMesh) {
                     object.geometry.dispose();
@@ -250,6 +251,19 @@ export default {
                     } else if (Array.isArray(object.material)) {
                         object.material.forEach(mat => mat.dispose());
                     }
+                } else if (object.isSprite || object instanceof THREE.Sprite) {
+                    if (object.material) {
+                        if (object.material.map) {
+                            object.material.map.dispose();
+                        }
+                        object.material.dispose();
+                    }
+                    spritesToRemove.push(object);
+                }
+            });
+            spritesToRemove.forEach(sprite => {
+                if (sprite.parent) {
+                    sprite.parent.remove(sprite);
                 }
             });
         }
