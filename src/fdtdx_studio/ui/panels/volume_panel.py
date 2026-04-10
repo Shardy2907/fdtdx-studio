@@ -1,6 +1,15 @@
 import fdtdx 
 import math
 from nicegui import ui
+from fdtdx_studio.ui.attribute_definitions import ALL_DOCS, ATTRIBUTE_TOOLTIP_FALLBACKS
+
+def get_dyn_tooltip(attr: str, default: str) -> str:
+    doc = ALL_DOCS.get('SimulationVolume', {}).get(attr)
+    if doc: return doc
+    doc = ATTRIBUTE_TOOLTIP_FALLBACKS.get(attr)
+    if doc: return doc
+    return default
+
 class volume_panel():
   def __init__(self, *args):
     if len(args) == 2:
@@ -14,14 +23,19 @@ class volume_panel():
     Volume: fdtdx.SimulationVolume = self.controller.project.objects[0]
     VTuple = Volume.partial_real_shape
     self.material = Volume.material
-    ui.label('Simulation Volume').style('font-size: 18px; margin-bottom: 8px; font-weight: bold;')
-    
-    with ui.row().classes('items-center gap-1'):
-      ui.label('Size').style('font-size: 14px; padding-bottom: 0px; font-weight: bold;').tooltip("Sets the Size of the simulation Volume")
-    
-    x = ui.number('Width', value=(VTuple[0]), step=0.000001, validation=self._validate).classes('w-full')
-    y = ui.number('Height', value=(VTuple[1]), step=0.000001, validation=self._validate).classes('w-full')
-    z = ui.number('Length', value=(VTuple[2]), step=0.000001, validation=self._validate).classes('w-full')
+
+
+    with ui.dialog() as dialogVolume, ui.card():
+      ui.label("Simulation Volume").style('font-size: 18px; font-weight: bold;')
+      
+      with ui.row().classes('items-center gap-1'):
+        ui.label('Size').style('font-size: 14px; padding-bottom: 0px; font-weight: bold;')
+        ui.icon('info_outline').classes('text-grey-5 cursor-help').style('font-size: 14px;').tooltip(get_dyn_tooltip('partial_real_shape', "Sets the physical size of the simulation volume."))
+      
+      with ui.row().style('padding-top: 0px').classes('justify-center'):
+        x = ui.number('Width', value=(VTuple[0]), step=0.000001, validation=self._validate).classes('w-1/6').tooltip('Width of the simulation volume (m)')
+        y = ui.number('Height', value=(VTuple[1]), step=0.000001, validation=self._validate).classes('w-1/6').tooltip('Height of the simulation volume (m)')
+        z = ui.number('Length', value=(VTuple[2]), step=0.000001, validation=self._validate).classes('w-1/6').tooltip('Length of the simulation volume (m)')
       
     def preset(W,H,L):
       nonlocal x,y,z

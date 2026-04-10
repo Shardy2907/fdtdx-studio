@@ -17,13 +17,11 @@ class RightDrawer:
         self.simparpanel = simulation_parameters_panel(self, controller)
         self.volume_panel = volume_panel(self, controller)
         self.build()
-        
-        
 
     def build(self):
         """Builds the right drawer UI components."""
         with ui.right_drawer(elevated=True).style('background-color: #E3E3E3') as self.right_drawer:
-              with ui.column().classes('w-full h-full justify-between gap-1'):
+            with ui.column().classes('w-full h-full justify-between gap-1'):
                 ui.label('Configuration').style('font-size: 18px; margin-bottom: 8px; font-weight: bold;')
                 with ui.scroll_area().classes('justify-start items-start h-full').style('padding: 0px;') as self.config_panel:
                   self.view.config_panel = self.config_panel
@@ -32,6 +30,13 @@ class RightDrawer:
                 ui.button('Simulation Volume', on_click=self.update_vol_drawer).classes('w-full').style('margin-bottom: 8px;')
                 button = ui.button('Simulation Parameters', on_click=self.update_drawer).classes('w-full ').style('margin-bottom: 16px;')
 
+    def show_sim_panel(self):
+        """Clears the config panel and renders the simulation parameters panel."""
+        if self.config_panel is not None:
+            self.config_panel.clear()
+            with self.config_panel:
+                self.simparpanel.button = None  # Reset so new button widget is created
+                self.simparpanel.simulation_param_panel()
 
     async def update_drawer(self):
       """reloads the Simulation Parameter Panel. MUST BE CALLED TO REFRESH NEW VALUES"""
