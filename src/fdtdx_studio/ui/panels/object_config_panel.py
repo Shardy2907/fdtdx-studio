@@ -149,12 +149,27 @@ class ObjectConfigPanel():
     :rtype: dict
     '''
     parameters = {}
-    partial_real_position = (self.partial_real_position_x.value, self.partial_real_position_y.value, self.partial_real_position_z.value)
-    partial_real_shape = (self.partial_real_shape_x.value, self.partial_real_shape_y.value, self.partial_real_shape_z.value)
-    partial_grid_shape = (self.partial_grid_shape_x.value, self.partial_grid_shape_y.value, self.partial_grid_shape_z.value)
-    max_random_real_offsets = (self.max_random_real_offsets_x.value, self.max_random_real_offsets_y.value, self.max_random_real_offsets_z.value)
-    max_random_grid_offsets = (self.max_random_grid_offsets_x.value, self.max_random_grid_offsets_y.value, self.max_random_grid_offsets_z.value)
-    parameters['name'] = self.name.value
+
+    def _complete_triplet(x_widget, y_widget, z_widget):
+      values = (
+        x_widget.value if x_widget else None,
+        y_widget.value if y_widget else None,
+        z_widget.value if z_widget else None,
+      )
+      return values if all(val is not None for val in values) else None
+
+    partial_real_position = _complete_triplet(self.partial_real_position_x, self.partial_real_position_y, self.partial_real_position_z)
+
+    partial_real_shape = _complete_triplet(self.partial_real_shape_x, self.partial_real_shape_y, self.partial_real_shape_z)
+
+    partial_grid_shape = _complete_triplet(self.partial_grid_shape_x, self.partial_grid_shape_y, self.partial_grid_shape_z)
+
+    max_random_real_offsets = _complete_triplet(self.max_random_real_offsets_x, self.max_random_real_offsets_y, self.max_random_real_offsets_z)
+
+    max_random_grid_offsets = _complete_triplet(self.max_random_grid_offsets_x, self.max_random_grid_offsets_y, self.max_random_grid_offsets_z)
+
+    current_name = self.name.value if self.name else None
+    parameters['name'] = current_name
     parameters['partial_real_position'] = partial_real_position
     parameters['partial_real_shape'] = partial_real_shape
     parameters['partial_grid_shape'] = partial_grid_shape
@@ -162,7 +177,8 @@ class ObjectConfigPanel():
     parameters['max_random_grid_offsets'] = max_random_grid_offsets
     parameters['color'] = self.color
     self.controller.save_constraints(self.original_name, list(self.cons.values()))
-    self.set_name(self.name.value)
+    if current_name is not None:
+      self.set_name(current_name)
     return parameters
 
   def update_values(self, parameters):
@@ -194,13 +210,16 @@ class ObjectConfigPanel():
   
 
   def add_con_to_scroll_and_dict(self, con):
+    self.cons[con['key']] = con
+    if self.scroll_area_con is None:
+      return  
     with self.scroll_area_con:
       with ui.row() as row:
         ui.button(con['key'], on_click=lambda: self.pop_up_con.open_pop_up(con['type'], self.name_of_all_objects, con), color=None).props('flat')
         ui.button(icon='delete', on_click=lambda e = con['key']: self.delete_con(e), color=None).props('flat')
     
     self.scroll_row[con['key']] = row
-    self.cons[con['key']] = con
+      
 
 
   def delete_con(self, name):
@@ -214,7 +233,7 @@ class ObjectConfigPanel():
     if float(value) < 0:
       self.view.send_error("Invalid size: negative sizes are not available.", 500)
 
-  def _validate_float(self, value):
+  def _validate_float(self, value) -> str | None:
       """Validation function to check if input is a float or empty."""
       try:
           float(value)

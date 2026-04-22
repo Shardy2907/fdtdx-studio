@@ -1,3 +1,5 @@
+import asyncio
+
 from nicegui import ui
 from fdtdx_studio.parameter import simulation_parameters
 from fdtdx_studio.json_handling.Export import Export
@@ -9,7 +11,7 @@ import json
 class Project:
   """Class for the Project. All Parameters and objects are gathered here to Save the Project in the end"""
 
-  def __init__(self, controller, Name:str = None, File: ui.upload.FileUpload = None):
+  def __init__(self, controller, Name:str | None = None):
     """Initializes a new Project. If a Name is given, it opens the Project from an existing File"""
     self.projectstoragekey = "FDTDX_data"
     self.materialstoragekey = "FDTDX_material"
@@ -21,14 +23,30 @@ class Project:
     self.model.constraints.clear()
     #self.objects = self.model.track_object_list
     self.param = simulation_parameters.simulation_parameters()
-    self.name: str = None
+    self.name: str | None= None
+
+  @classmethod
+  def create_new(cls, controller, Name: str | None = None):
+    """Symchronously creates a new Project"""
+    instance = cls(controller, Name)
+    instance.model.create_simulation_volume()
+    return instance
+
+  @classmethod
+  async def create_from_file(cls, controller, File: ui.upload.FileUpload, Name: str | None = None): 
+    """Asynchronously creates a new Project from a given File"""
+    instance = cls(controller, Name)
     if File is not None:
-      self.importer.import_from(File)
-      self.name = Name
-    else:
-        self.model.create_simulation_volume()
- 
-         
+      await instance.importer.import_from(File)
+    return instance
+
+  @classmethod
+  async def create_from_data(cls, controller, project_data, Name: str | None = None):
+    """Asynchronously creates a new Project from already decoded JSON data."""
+    instance = cls(controller, Name)
+    await instance.importer.import_from(project_data)
+    return instance
+
   def set_name(self, Name: str):
     """Set Project name to given value"""
     self.name = Name
@@ -40,7 +58,8 @@ class Project:
       self.exporter.export()
     else:
       self.save_Project_as()
-
+  
+  @staticmethod
   def update_button(button: ui.button, path: ui.input):
     button.enabled = path.value
 
@@ -102,7 +121,7 @@ class Project:
                 console.warn('Could not save to localStorage:', error);
             }}
             """,
-            timeout=None,
+            
         )
     
     # loads the last used scene from the browser localstorage
@@ -119,21 +138,23 @@ class Project:
                 return {{}};
             }}
         """,
-            timeout=None,
         )
     # checks if teh localstorage was empty
     if (len(importProject)>0):
         # tries to load the scene via the importer
       try:
-        self.controller.open_Project(Project(controller=self.controller, File= importProject))
+        loaded_project = await Project.create_from_data(self.controller, project_data=importProject) 
+        self.controller.open_Project(loaded_project)
         self.controller.ui_update()
         return True
         # if the import fails prints error messages and loads empty scene
-      except:
-        ui.notify("tried loading invalid config")
-        print("tried loading invalid config")
+      except Exception as error:
+        ui.notify(f"tried loading invalid config: {error!r}")
+        print(f"tried loading invalid config: {error!r}")
+        fallback_project = Project.create_new(self.controller)
+        self.controller.open_Project(fallback_project)
         return False
-        self.controller.open_Project(Project(controller=self.controller))
+        
     else:
       ui.notify("No previous state to load")
       return False
@@ -151,7 +172,6 @@ class Project:
                 console.warn('Could not save to localStorage:', error);
             }}
         """,
-            timeout=None,
         )
   
   # loads the list of custom materials from the browser localstorage
@@ -167,7 +187,6 @@ class Project:
                 return {{}};
             }}
         """,
-            timeout=None,
         )
     if (len(importMaterial)>0):
       try:

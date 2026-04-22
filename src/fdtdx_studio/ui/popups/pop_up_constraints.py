@@ -1,6 +1,10 @@
 from nicegui import ui
+from typing import TypeAlias, cast
 import fdtdx
 tooltip_explanation = {}
+
+ConstraintAtom: TypeAlias = str | int | float | bool | tuple[int, ...]
+ConstraintValue: TypeAlias = ConstraintAtom | tuple[ConstraintAtom, ...]
 
 class Pop_up_constraints():
   def __init__(self, ocp):
@@ -46,7 +50,7 @@ class Pop_up_constraints():
 
 
   def remove_tuple(self, Con, typ):
-    self.con_value = {'key': self.name_for_new(), 'type': 'not set'}
+    self.con_value: dict[str, str | int | float | bool | tuple[int, ...] | None] = {'key': self.name_for_new(), 'type': 'not set'}
     a = iter(range(3))
     coor = ('x', 'y', 'z')
     for key, value in Con.items():
@@ -60,16 +64,17 @@ class Pop_up_constraints():
 
 
   def get_val_with_tuple(self):
-    result = {'new': self.canback}
+    result: dict[str, ConstraintValue] = {'new': self.canback}
     coor = ('_x', '_y', '_z')
     for key, value in self.con_value.items():
       if value is not None:
         if any(item in key for item in coor):
-          result[key[:-2]] = (value,) if not key[:-2] in result.keys() else result[key[:-2]] + (value,)
+          result[key[:-2]] = (value,) if not key[:-2] in result.keys() else cast(tuple, result[key[:-2]]) + (value,)
         else:
           result[key] = value
     if result['type'] != 'SizeExtensionConstraint':
-      result.update({'axes': tuple(i for i in range(len(result['axes'])) if result['axes'][i])})
+      axes_list = cast(list | tuple, result['axes'])
+      result.update({'axes': tuple(i for i in range(len(axes_list)) if axes_list[i])})
     return result
 
 
@@ -123,6 +128,7 @@ class Pop_up_constraints():
     with ui.row():
       ui.button('Save Changes', on_click=self.close_pop_up)
       if self.canback:
+        assert self.stepper is not None
         ui.button(text='Back', on_click=self.stepper.previous).props('flat')
       else:
         ui.button(text='Cancel', on_click=self.close_pop_up)
@@ -158,6 +164,7 @@ class Pop_up_constraints():
     with ui.row():
       ui.button('Save Changes', on_click=self.close_pop_up)
       if self.canback:
+        assert self.stepper is not None
         ui.button(text='Back', on_click=self.stepper.previous).props('flat')
       else:
          ui.button(text='Cancel', on_click=self.close_pop_up)
@@ -209,6 +216,7 @@ class Pop_up_constraints():
     with ui.row():
       ui.button('Save Changes', on_click=self.close_pop_up)
       if self.canback:
+        assert self.stepper is not None
         ui.button(text='Back', on_click=self.stepper.previous).props('flat')
       else:
          ui.button(text='Cancel', on_click=self.close_pop_up)
@@ -238,6 +246,7 @@ class Pop_up_constraints():
     with ui.row():
       ui.button('Save Changes', on_click=self.close_pop_up)
       if self.canback:
+        assert self.stepper is not None
         ui.button(text='Back', on_click=self.stepper.previous).props('flat')
       else:
          ui.button(text='Cancel', on_click=self.close_pop_up)
@@ -269,4 +278,5 @@ class Pop_up_constraints():
         case 'GridCoordinateConstraint':
           self.build_grid_con()
     
+    assert self.stepper is not None
     self.stepper.next()
