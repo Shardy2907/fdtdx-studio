@@ -18,7 +18,7 @@ class Model(Constraints):
     def config(self, name):
         """Sets the current index to the object with the given name."""
         for i,d in enumerate(self.track_object_list):
-            if d.name == name:
+            if d is not None and getattr(d, 'name', None) == name:
                 self.current = i
                 return i
         return -1
@@ -62,7 +62,7 @@ class Model(Constraints):
 
     def get_by_name(self, name):
         for obj in self.track_object_list:
-            if obj.name == name:
+            if obj is not None and getattr(obj, 'name', None) == name:
                 return obj
         return None
 
@@ -97,9 +97,10 @@ class Model(Constraints):
 
         """
         #ugly but works
-        constraints = self.get_obj_constraints(self.track_object_list[self.current].name)
-        names = [o.name for o in self.track_object_list if not isinstance(o, fdtdx.PerfectlyMatchedLayer) and o.name != self.track_object_list[self.current].name]
-        return {**{f.name: f.value for f in self.track_object_list[self.current].get_public_fields()}, 'names':names, "constraints":constraints}
+        constraints = self.get_obj_constraints(self.track_object_list[self.current].name) if self.track_object_list[self.current] is not None else []
+        names = [o.name for o in self.track_object_list if o is not None and getattr(o, 'name', None) is not None and not isinstance(o, fdtdx.PerfectlyMatchedLayer) and getattr(o, 'name', None) != getattr(self.track_object_list[self.current], 'name', None)]
+        fields = {f.name: f.value for f in self.track_object_list[self.current].get_public_fields()} if self.track_object_list[self.current] else {}
+        return {**fields, 'names':names, "constraints":constraints}
     
     def get_current_type(self):
         """
@@ -483,7 +484,7 @@ class Model(Constraints):
   
     def delete_by_object_name(self, name):
         for idx, obj in enumerate(self.track_object_list):
-            if obj.name == name:
+            if obj is not None and getattr(obj, 'name', None) == name:
                 del self.track_object_list[idx]
 
                 if self.current >= len(self.track_object_list):
@@ -499,12 +500,13 @@ class Model(Constraints):
         self.track_object_list[self.current].color == color
         return 0
     def get_object_names(self):
-        return (o.name for o in self.track_object_list)
+        return (o.name for o in self.track_object_list if o is not None and getattr(o, 'name', None) is not None)
     # returns a dict with objname as key and a tuple of 2 lists (sizes, pos)
     def get_all_dimensions(self, config):
         config = SimulationConfig(**config)
         #resolve_object_constraints returns 2 dicts, one with 3 slices per object for its dimenstions, and one with error messages per object
-        objs, errors = fdtdx.resolve_object_constraints(objects=self.track_object_list, constraints=list(self.constraints.values()), config=config)
+        valid_objs = [o for o in self.track_object_list if o is not None]
+        objs, errors = fdtdx.resolve_object_constraints(objects=valid_objs, constraints=list(self.constraints.values()), config=config)
         if not all(e is None for e in errors.values()):
             raise Exception([k for k,v in errors.items() if v is not None])
         # Make 0,0,0 the center of the simulation volume in our scene

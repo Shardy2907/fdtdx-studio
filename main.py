@@ -143,6 +143,30 @@ def _register_pages() -> None:
 
     @ui.page("/")
     def index():
+        ui.add_head_html("""
+            <style>
+                input[type="number"]::-webkit-outer-spin-button,
+                input[type="number"]::-webkit-inner-spin-button {
+                    -webkit-appearance: none;
+                    margin: 0;
+                }
+                input[type="number"] {
+                    -moz-appearance: textfield;
+                }
+            </style>
+            <script>
+                document.addEventListener("keydown", function(e) {
+                    if (e.target.type === "number" && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+                        e.preventDefault();
+                    }
+                });
+                document.addEventListener("wheel", function(e) {
+                    if (e.target.type === "number") {
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+            </script>
+        """)
         Controller()
 
 

@@ -1,11 +1,13 @@
 from nicegui import events, ui
-from fdtdx_studio.ui.ui_view import View
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from fdtdx_studio.ui.ui_view import View
 from fdtdx_studio.project.project import Project
 import fdtdx
 
 class Project_Dialog_Controller:
   """Controller for opening new and importing existing Projects"""
-  def __init__(self, view: View, controller):
+  def __init__(self, view: 'View', controller):
     self.view = view
     self.controller = controller
 
